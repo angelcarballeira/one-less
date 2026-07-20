@@ -14,32 +14,43 @@
 export default App
 
  */
-
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
+import AuthPage from './pages/AuthPage'
+import Dashboard from './pages/Dashboard'
 
 function App() {
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    const testConnection = async () => {
-      const { data, error } = await supabase.auth.getSession()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setLoading(false)
+    })
 
-      console.log('SESSION:', data)
-      console.log('ERROR:', error)
-    }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
 
-    testConnection()
+    return () => subscription.unsubscribe()
   }, [])
 
-  return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-slate-900">One Less</h1>
-        <p className="mt-4 text-slate-600">
-          Supabase connected successfully.
-        </p>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Loading One Less...</p>
+        </div>
       </div>
-    </main>
-  )
+    )
+  }
+
+  return session ? <Dashboard /> : <AuthPage />
 }
 
 export default App
