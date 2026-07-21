@@ -1,19 +1,4 @@
-/* function App() {
-  return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-slate-900">One Less</h1>
-        <p className="mt-4 text-slate-600">
-          Controlar la cantidad de usos de mis productos.
-        </p>
-      </div>
-    </main>
-  )
-}
 
-export default App
-
- */
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
