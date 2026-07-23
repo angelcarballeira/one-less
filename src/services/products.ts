@@ -14,6 +14,15 @@ export async function getProducts(): Promise<Product[]> {
   return data as Product[]
 }
 
+export async function deleteProduct(productId: string) {
+  const { error } = await supabase
+    .from('products')
+    .delete()
+    .eq('id', productId)
+
+  if (error) throw error
+}
+
 export async function createProduct(product: CreateProductData) {
   const {
     data: { user },

@@ -1,22 +1,38 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import CreateProductForm from '../components/CreateProductForm'
-import { getProducts } from '../services/products'
+import {
+  getProducts,
+  deleteProduct,
+} from '../services/products'
 import { getProductUses, registerProductUse } from '../services/productUses'
 import type { Product } from '../types/product'
+import type { User } from '@supabase/supabase-js'
 
 type ProductUseCounts = Record<string, number>
 
 export default function Dashboard() {
+  const [user, setUser] = useState<User | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [useCounts, setUseCounts] = useState<ProductUseCounts>({})
   const [loading, setLoading] = useState(true)
   const [registeringProductId, setRegisteringProductId] = useState<
     string | null
   >(null)
+  const [deletingProductId, setDeletingProductId] =
+    useState<string | null>(null)
+
+  const loadUser = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    setUser(user)
+  }
 
   useEffect(() => {
     loadProducts()
+    loadUser()
   }, [])
 
   const loadProducts = async () => {
@@ -69,6 +85,37 @@ export default function Dashboard() {
     }
   }
 
+  const handleDeleteProduct = async (product: Product) => {
+    const confirmed = window.confirm(
+      `¿Eliminar "${product.name}"?\n\nTambién se eliminarán todos los usos registrados.`,
+    )
+
+    if (!confirmed) return
+
+    try {
+      setDeletingProductId(product.id)
+
+      await deleteProduct(product.id)
+
+      setProducts((currentProducts) =>
+        currentProducts.filter(
+          (currentProduct) => currentProduct.id !== product.id,
+        ),
+      )
+
+      setUseCounts((currentCounts) => {
+        const updated = { ...currentCounts }
+        delete updated[product.id]
+        return updated
+      })
+    } catch (error) {
+      console.error(error)
+      alert('No se pudo eliminar el producto')
+    } finally {
+      setDeletingProductId(null)
+    }
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
   }
@@ -78,9 +125,16 @@ export default function Dashboard() {
       <div className="mx-auto max-w-4xl">
         <header className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">One Less</h1>
-            <p className="text-slate-600">
-              Controlá cuánto duran tus productos
+            <h1 className="text-3xl font-bold text-slate-900">
+              One Less
+            </h1>
+
+            <p className="text-slate-600 mt-1">
+              Hola, {user?.email}
+            </p>
+
+            <p className="text-slate-500">
+              Controla cuánto duran tus productos.
             </p>
           </div>
 
@@ -175,16 +229,34 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleRegisterUse(product.id)}
-                      disabled={isRegistering}
-                      className="w-full rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isRegistering
-                        ? 'Registrando...'
-                        : '+ Registrar uso'}
-                    </button>
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => handleRegisterUse(product.id)}
+                        disabled={
+                          isRegistering ||
+                          deletingProductId === product.id
+                        }
+                        className="w-full rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isRegistering
+                          ? 'Registrando...'
+                          : '+ Registrar uso'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteProduct(product)}
+                        disabled={
+                          deletingProductId === product.id
+                        }
+                        className="w-full rounded-xl border border-red-300 bg-red-50 px-4 py-3 font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                      >
+                        {deletingProductId === product.id
+                          ? 'Eliminando...'
+                          : 'Eliminar producto'}
+                      </button>
+                    </div>
                   </article>
                 )
               })}
