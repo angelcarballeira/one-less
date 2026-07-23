@@ -17,3 +17,4 @@ export interface CreateProductData {
   category: string
   expected_uses: number
 }
+

@@ -1,118 +1,181 @@
 import { useState } from 'react'
 import { createProduct } from '../services/products'
+import type { Product } from '../types/product'
 
-interface Props {
-  onCreated: () => void
+type Props = {
+  onProductCreated: (product: Product) => void
 }
 
-export default function CreateProductForm({ onCreated }: Props) {
+export default function CreateProductForm({
+  onProductCreated,
+}: Props) {
   const [name, setName] = useState('')
   const [brand, setBrand] = useState('')
-  const [category, setCategory] = useState('Laundry Detergent')
-  const [expectedUses, setExpectedUses] = useState(22)
-  const [loading, setLoading] = useState(false)
+  const [category, setCategory] = useState('')
+  const [expectedUses, setExpectedUses] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  const handleSubmit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    const parsedExpectedUses = Number(expectedUses)
+
+    if (!name.trim()) {
+      alert('Ingresá el nombre del producto')
+      return
+    }
+
+    if (!category) {
+      alert('Seleccioná una categoría')
+      return
+    }
+
+    if (
+      !Number.isInteger(parsedExpectedUses) ||
+      parsedExpectedUses <= 0
+    ) {
+      alert('Los usos esperados deben ser un número mayor que cero')
+      return
+    }
 
     try {
-      setLoading(true)
+      setIsSubmitting(true)
 
-      await createProduct({
-        name,
-        brand,
+      const newProduct = await createProduct({
+        name: name.trim(),
+        brand: brand.trim() || null,
         category,
-        expected_uses: expectedUses,
+        expected_uses: parsedExpectedUses,
       })
+
+      onProductCreated(newProduct)
 
       setName('')
       setBrand('')
-      setExpectedUses(22)
-
-      onCreated()
+      setCategory('')
+      setExpectedUses('')
     } catch (error) {
-      console.error(error)
-      alert('Error al crear el producto')
+      console.error('Error al crear el producto:', error)
+      alert('No se pudo crear el producto')
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
     }
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4"
-    >
-      <h2 className="text-xl font-semibold text-slate-900">
-        Nuevo producto
-      </h2>
+    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-slate-900">
+          Nuevo producto
+        </h2>
 
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          Nombre del producto
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Ala Matic 3L"
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-          required
-        />
+        <p className="mt-1 text-slate-600">
+          Agregá un producto para comenzar a controlar su duración.
+        </p>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          Marca
-        </label>
-        <input
-          type="text"
-          value={brand}
-          onChange={(e) => setBrand(e.target.value)}
-          placeholder="Ala"
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          Categoría
-        </label>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-        >
-          <option>Jabón para ropa</option>
-          <option>Suavizante</option>
-          <option>Pasta dental</option>
-          <option>Shampoo</option>
-          <option>Jabón corporal</option>
-          <option>Otro</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          Usos esperados
-        </label>
-        <input
-          type="number"
-          min={1}
-          value={expectedUses}
-          onChange={(e) => setExpectedUses(Number(e.target.value))}
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-          required
-        />
-      </div>
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-slate-900 text-white py-3 rounded-xl font-medium hover:bg-slate-800 transition disabled:opacity-50"
+      <form
+        onSubmit={handleSubmit}
+        className="grid gap-4 md:grid-cols-2"
       >
-        {loading ? 'Guardando...' : 'Crear producto'}
-      </button>
-    </form>
+        <div>
+          <label
+            htmlFor="product-name"
+            className="mb-1 block text-sm font-medium text-slate-700"
+          >
+            Nombre del producto
+          </label>
+
+          <input
+            id="product-name"
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Ej. Jabón líquido 3 L"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="product-brand"
+            className="mb-1 block text-sm font-medium text-slate-700"
+          >
+            Marca
+          </label>
+
+          <input
+            id="product-brand"
+            type="text"
+            value={brand}
+            onChange={(event) => setBrand(event.target.value)}
+            placeholder="Ej. Ala"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="product-category"
+            className="mb-1 block text-sm font-medium text-slate-700"
+          >
+            Categoría
+          </label>
+
+          <select
+            id="product-category"
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
+          >
+            <option value="">Seleccioná una categoría</option>
+            <option value="Jabón para ropa">
+              Jabón para ropa
+            </option>
+            <option value="Suavizante">Suavizante</option>
+            <option value="Pasta dental">Pasta dental</option>
+            <option value="Jabón de manos">
+              Jabón de manos
+            </option>
+            <option value="Shampoo">Shampoo</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+
+        <div>
+          <label
+            htmlFor="expected-uses"
+            className="mb-1 block text-sm font-medium text-slate-700"
+          >
+            Usos esperados
+          </label>
+
+          <input
+            id="expected-uses"
+            type="number"
+            min="1"
+            step="1"
+            value={expectedUses}
+            onChange={(event) => setExpectedUses(event.target.value)}
+            placeholder="Ej. 22"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting
+              ? 'Creando producto...'
+              : 'Crear producto'}
+          </button>
+        </div>
+      </form>
+    </section>
   )
 }
