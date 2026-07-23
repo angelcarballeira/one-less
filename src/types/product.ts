@@ -13,7 +13,7 @@ export interface Product {
 
 export interface CreateProductData {
   name: string
-  brand?: string
+  brand?: string | null
   category: string
   expected_uses: number
 }
